@@ -248,87 +248,47 @@ void print_task_list(Task *tasks, char *taskDir)
     }
 }
 
+#define compare_priority_body(num)               \
+    const Task *aa = a;                          \
+    const Task *bb = b;                          \
+    if (aa->priority > bb->priority) return num;   \
+    if (aa->priority < bb->priority) return -num;  \
+    return 0;
 int compare_priority_asc(const void *a, const void *b)
 {
-    const Task *aa = a;
-    const Task *bb = b;
-    if (aa->priority > bb->priority) return 1;
-    if (aa->priority < bb->priority) return -1;
-    return 0;
+    compare_priority_body(1);
 }
 int compare_priority_desc(const void *a, const void *b)
 {
-    const Task *aa = a;
-    const Task *bb = b;
-    if (aa->priority > bb->priority) return -1;
-    if (aa->priority < bb->priority) return 1;
-    return 0;
+    compare_priority_body(-1);
 }
+#define compare_date_body(num)                           \
+    const Task *aa = a;                                  \
+    const Task *bb = b;                                  \
+    if (!aa->id || !bb->id) return 0;                    \
+                                                         \
+    char *tmpa = temp_alloc(aa->id);                     \
+    char *tmpb = temp_alloc(bb->id);                     \
+    tmpa[8] = '\0'; tmpb[8] = '\0';                      \
+                                                         \
+    char datea[15] = {0};                                \
+    char dateb[15] = {0};                                \
+    strncpy(datea, tmpa, 8); strncpy(datea, tmpa+9, 6);  \
+    strncpy(dateb, tmpb, 8); strncpy(dateb, tmpb+9, 6);  \
+                                                         \
+    long long da = atoll(datea);                         \
+    long long db = atoll(dateb);                         \
+                                                         \
+    if (da > db) return num;                             \
+    if (da < db) return -num;                            \
+    return 0;
 int compare_date_asc(const void *a, const void *b)
 {
-    const Task *aa = a;
-    const Task *bb = b;
-    if (!aa->id || !bb->id) return 0;
-
-    char *tmpa = temp_alloc(aa->id);
-    char *tmpb = temp_alloc(bb->id);
-    tmpa[8] = '\0'; tmpb[8] = '\0';
-
-    char dta[9] = {0};
-    char dtb[9] = {0};
-    char tma[7] = {0};
-    char tmb[7] = {0};
-    strcpy(dta, tmpa);
-    strcpy(dtb, tmpb);
-    strcpy(tma, tmpa+9);
-    strcpy(tmb, tmpb+9);
-
-    char datea[15] = {0};
-    char dateb[15] = {0};
-    strcat(datea, dta);
-    strcat(datea, tma);
-    strcat(dateb, dtb);
-    strcat(dateb, tmb);
-
-    long long da = atoll(datea);
-    long long db = atoll(dateb);
-
-    if (da > db) return 1;
-    if (da < db) return -1;
-    return 0;
+    compare_date_body(1);
 }
 int compare_date_desc(const void *a, const void *b)
 {
-    const Task *aa = a;
-    const Task *bb = b;
-    if (!aa->id || !bb->id) return 0;
-
-    char *tmpa = temp_alloc(aa->id);
-    char *tmpb = temp_alloc(bb->id);
-    tmpa[8] = '\0'; tmpb[8] = '\0';
-
-    char dta[9] = {0};
-    char dtb[9] = {0};
-    char tma[7] = {0};
-    char tmb[7] = {0};
-    strcpy(dta, tmpa);
-    strcpy(dtb, tmpb);
-    strcpy(tma, tmpa+9);
-    strcpy(tmb, tmpb+9);
-
-    char datea[15] = {0};
-    char dateb[15] = {0};
-    strcat(datea, dta);
-    strcat(datea, tma);
-    strcat(dateb, dtb);
-    strcat(dateb, tmb);
-
-    long long da = atoll(datea);
-    long long db = atoll(dateb);
-
-    if (da > db) return -1;
-    if (da < db) return 1;
-    return 0;
+    compare_date_body(-1);
 }
 
 int main(int argc, char **argv)
