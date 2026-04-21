@@ -22,7 +22,8 @@ void ahb_args_init(State *st, int argc, char **argv);
 char *ahb_args_next(State *st);
 char *ahb_temp_alloc(const char *content);
 void ahb_temp_alloc_free();
-void __make_sure_is_initialized();
+
+char *ahb_read_entire_file(const char *path);
 
 #endif  //AHB_LIB
 
@@ -33,6 +34,7 @@ void __make_sure_is_initialized();
 #define args_next ahb_args_next
 #define temp_alloc ahb_temp_alloc
 #define temp_alloc_free ahb_temp_alloc_free
+#define read_entire_file ahb_read_entire_file
 
 #endif // AHB_STRIP_PREFIX
 
@@ -94,6 +96,23 @@ void ahb_temp_alloc_free()
     allocator.capacity = 0;
     allocator.count = 0;
     allocator.data = NULL;
+}
+
+// this allocates memory
+char *ahb_read_entire_file(const char *path)
+{
+    FILE *f = fopen(path, "r");
+    assert(f && "Could not open file");
+    fseek(f, 0L, SEEK_END);
+    size_t size = ftell(f);
+    rewind(f);
+    char *content = malloc(size + 1);
+    assert(content && "Could not allocate memory. Buy more RAM.");
+    int count = fread(content, 1, size, f);
+    content[size] = '\0';
+    assert((size_t)count == size && "Could not read entire file");
+    fclose(f);
+    return content;
 }
 
 #endif // AHB_LIB_IMPLEMENTATION

@@ -113,22 +113,6 @@ char *get_tasks_dir()
 
 }
 
-// this allocates memory
-char *read_entire_file(const char *path)
-{
-    FILE *f = fopen(path, "r");
-    assert(f && "Could not open file");
-    fseek(f, 0L, SEEK_END);
-    size_t size = ftell(f);
-    rewind(f);
-    char *content = malloc(size + 1);
-    assert(content && "Could not allocate memoryu. Buy more RAM.");
-    int count = fread(content, 1, size, f);
-    content[size] = '\0';
-    assert((size_t)count == size && "Could not read entire file");
-    fclose(f);
-    return content;
-}
 
 typedef enum {
     OPEN,
@@ -262,6 +246,7 @@ int compare_priority_desc(const void *a, const void *b)
 {
     compare_priority_body(-1);
 }
+
 #define compare_date_body(num)                           \
     const Task *aa = a;                                  \
     const Task *bb = b;                                  \
