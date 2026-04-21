@@ -65,6 +65,18 @@ void get_args(int argc, char** argv, OrderType *orderType, Order *order)
     }
 }
 
+typedef enum {
+    OPEN,
+    CLOSED
+} Status;
+
+typedef struct {
+    char *id;
+    char *title;
+    Status status;
+    size_t priority;
+} Task;
+
 char *get_tasks_dir()
 {
     DIR *d = NULL;
@@ -112,19 +124,6 @@ char *get_tasks_dir()
     }
 
 }
-
-
-typedef enum {
-    OPEN,
-    CLOSED
-} Status;
-
-typedef struct {
-    char *id;
-    char *title;
-    Status status;
-    size_t priority;
-} Task;
 
 // allocates memory in Task->title and Task->id
 Task get_task(const char *taskDir, const char *taskId)
@@ -247,25 +246,25 @@ int compare_priority_desc(const void *a, const void *b)
     compare_priority_body(-1);
 }
 
-#define compare_date_body(num)                           \
-    const Task *aa = a;                                  \
-    const Task *bb = b;                                  \
-    if (!aa->id || !bb->id) return 0;                    \
-                                                         \
-    char *tmpa = temp_alloc(aa->id);                     \
-    char *tmpb = temp_alloc(bb->id);                     \
-    tmpa[8] = '\0'; tmpb[8] = '\0';                      \
-                                                         \
-    char datea[15] = {0};                                \
-    char dateb[15] = {0};                                \
-    strncpy(datea, tmpa, 8); strncpy(datea, tmpa+9, 6);  \
-    strncpy(dateb, tmpb, 8); strncpy(dateb, tmpb+9, 6);  \
-                                                         \
-    long long da = atoll(datea);                         \
-    long long db = atoll(dateb);                         \
-                                                         \
-    if (da > db) return num;                             \
-    if (da < db) return -num;                            \
+#define compare_date_body(num)                               \
+    const Task *aa = a;                                      \
+    const Task *bb = b;                                      \
+    if (!aa->id || !bb->id) return 0;                        \
+                                                             \
+    char *tmpa = temp_alloc(aa->id);                         \
+    char *tmpb = temp_alloc(bb->id);                         \
+    tmpa[8] = '\0'; tmpb[8] = '\0';                          \
+                                                             \
+    char datea[15] = {0};                                    \
+    char dateb[15] = {0};                                    \
+    strncpy(datea, tmpa, 8); strncpy(datea+8, tmpa+9, 6);    \
+    strncpy(dateb, tmpb, 8); strncpy(dateb+8, tmpb+9, 6);    \
+                                                             \
+    long long da = atoll(datea);                             \
+    long long db = atoll(dateb);                             \
+                                                             \
+    if (da > db) return num;                                 \
+    if (da < db) return -num;                                \
     return 0;
 int compare_date_asc(const void *a, const void *b)
 {
