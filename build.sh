@@ -3,6 +3,8 @@
 # comment if wanna use it via vim's make command
 #set -xe
 
-mkdir -p build
+BIN_FOLDER=bin
 
-clang -Wall -Wextra -g -o build/tatr main.c
+mkdir -p $BIN_FOLDER
+
+clang -Wall -Wextra -g -o $BIN_FOLDER/tatr main.c

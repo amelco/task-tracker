@@ -57,6 +57,7 @@ char *ahb_args_next(State *st)
 void _make_sure_is_initialized()
 {
     if (allocator.data == NULL) {
+        allocator.count = 0;
         allocator.capacity = 1024 * 1024; // 1 KB
         allocator.data = malloc(allocator.capacity);
         assert(allocator.data);
@@ -76,9 +77,16 @@ char *ahb_temp_alloc(const char *content)
     memcpy(allocator.data + allocator.count, content, size);
     allocator.data[allocator.count + size] = '\0';
     char *ptr = allocator.data + allocator.count;
-    allocator.count += size;
+    allocator.count += size + 1;
     return ptr;
 }
+// count: 0
+// hello. size: 5
+// hello.------------------
+
+// count: 5
+// world!. size 6
+// hello.world!------------------
 
 void ahb_temp_alloc_free()
 {

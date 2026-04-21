@@ -53,7 +53,7 @@ void get_args(int argc, char** argv, OrderType *orderType, Order *order)
         if (strcmp(arg, "asc") == 0) {
             *order = ASC;
         } else if (strcmp(arg, "desc") == 0) {
-            *orderType = (OrderType)DESC;
+            *order = DESC;
         } else {
             printf("Invalid order. Must be 'asc' or 'desc'\n");
             exit(1);
@@ -63,7 +63,6 @@ void get_args(int argc, char** argv, OrderType *orderType, Order *order)
         usage();
         exit(1);
     }
-    temp_alloc_free();
 }
 
 char *get_tasks_dir()
@@ -75,7 +74,7 @@ char *get_tasks_dir()
     path[0] = '.';
     int path_idx = 0;
 
-    // TASK(20260408014434): detect root instead of using maxDepth
+    // TASK(20260408-014434): detect root instead of using maxDepth
     int maxDepth = 5;
     int i = 0;
     bool found = false;
@@ -147,7 +146,7 @@ typedef struct {
 Task get_task(const char *taskDir, const char *taskId)
 {
 
-    // TASK(20260415172036): implement a string builder
+    // TASK(20260415-172036): implement a string builder
     char path[256] = {0};
     strcat(path, taskDir);
     strcat(path, "/");
@@ -226,7 +225,7 @@ void get_task_list(Task *tasks, const char *tasksPath)
         char *taskDir = (dir->d_name);
         if (taskDir[0] == '.') continue;
 
-        // TASK(20260417170612): add tasks to a dynamic array
+        // TASK(20260417-170612): add tasks to a dynamic array
         Task t = get_task(tasksPath, taskDir); // remember to free t.title
         tasks[i++] = t;
     }
@@ -249,7 +248,7 @@ void print_task_list(Task *tasks, char *taskDir)
     }
 }
 
-int compare_asc(const void *a, const void *b)
+int compare_priority_asc(const void *a, const void *b)
 {
     const Task *aa = a;
     const Task *bb = b;
@@ -257,12 +256,78 @@ int compare_asc(const void *a, const void *b)
     if (aa->priority < bb->priority) return -1;
     return 0;
 }
-int compare_desc(const void *a, const void *b)
+int compare_priority_desc(const void *a, const void *b)
 {
     const Task *aa = a;
     const Task *bb = b;
     if (aa->priority > bb->priority) return -1;
     if (aa->priority < bb->priority) return 1;
+    return 0;
+}
+int compare_date_asc(const void *a, const void *b)
+{
+    const Task *aa = a;
+    const Task *bb = b;
+    if (!aa->id || !bb->id) return 0;
+
+    char *tmpa = temp_alloc(aa->id);
+    char *tmpb = temp_alloc(bb->id);
+    tmpa[8] = '\0'; tmpb[8] = '\0';
+
+    char dta[9] = {0};
+    char dtb[9] = {0};
+    char tma[7] = {0};
+    char tmb[7] = {0};
+    strcpy(dta, tmpa);
+    strcpy(dtb, tmpb);
+    strcpy(tma, tmpa+9);
+    strcpy(tmb, tmpb+9);
+
+    char datea[15] = {0};
+    char dateb[15] = {0};
+    strcat(datea, dta);
+    strcat(datea, tma);
+    strcat(dateb, dtb);
+    strcat(dateb, tmb);
+
+    long long da = atoll(datea);
+    long long db = atoll(dateb);
+
+    if (da > db) return 1;
+    if (da < db) return -1;
+    return 0;
+}
+int compare_date_desc(const void *a, const void *b)
+{
+    const Task *aa = a;
+    const Task *bb = b;
+    if (!aa->id || !bb->id) return 0;
+
+    char *tmpa = temp_alloc(aa->id);
+    char *tmpb = temp_alloc(bb->id);
+    tmpa[8] = '\0'; tmpb[8] = '\0';
+
+    char dta[9] = {0};
+    char dtb[9] = {0};
+    char tma[7] = {0};
+    char tmb[7] = {0};
+    strcpy(dta, tmpa);
+    strcpy(dtb, tmpb);
+    strcpy(tma, tmpa+9);
+    strcpy(tmb, tmpb+9);
+
+    char datea[15] = {0};
+    char dateb[15] = {0};
+    strcat(datea, dta);
+    strcat(datea, tma);
+    strcat(dateb, dtb);
+    strcat(dateb, tmb);
+
+    long long da = atoll(datea);
+    long long db = atoll(dateb);
+
+    if (da > db) return -1;
+    if (da < db) return 1;
     return 0;
 }
 
@@ -284,8 +349,15 @@ int main(int argc, char **argv)
 
     // TODO: implement the sorting and filtering algorithms
     bool is_desc = order == DESC;
-    qsort(&tasks[0], 256, sizeof(tasks[0]), is_desc ? compare_desc : compare_asc);
+    if (orderType == PRIORITY) 
+        qsort(tasks, 256, sizeof(tasks[0]), is_desc ? compare_priority_desc : compare_priority_asc);
+    else if (orderType == DATE)
+        qsort(tasks, 256, sizeof(tasks[0]), is_desc ? compare_date_desc : compare_date_asc);
+    
+    printf("order type: %s\n", orderType == PRIORITY ? "priority" : "date");
+    printf("order: %s\n", is_desc ? "desc" : "asc");
     print_task_list(tasks, tasksPath);
 
+    temp_alloc_free();
     return 0;
 }
