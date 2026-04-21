@@ -19,7 +19,18 @@ typedef enum {
 } OrderType;
 
 void usage() {
-    printf("Usage: tatr [--order] <date, priority> [asc, desc]\n");
+    printf("Usage: tatr [OPTIONS]\n");
+    printf("OPTIONS:\n");
+    printf("  --after    <DD-MM-YYYY>                : filter after a certain date\n");
+    printf("  --before   <DD-MM-YYYY>                : gilter before a certain date\n");
+    printf("  --priority <STATUS>                    : filter by a certain priority\n");
+    printf("  --order  <date, priority> [asc, desc]  : order by date or priority, ascending or descending\n");
+    printf("STATUS:\n");
+    printf("  OPEN    : opened tasks\n");
+    printf("  CLOSED  : closed tasks\n");
+    printf("\n");
+    printf("Example:\n");
+    printf("tatr --after 23-02-2026 --before 23-03-2026 --order date asc --priority OPEN\n");
 }
 
 void get_args(int argc, char** argv, OrderType *orderType, Order *order)
@@ -287,17 +298,21 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    // listing all tasks from task folder
+    // getting all tasks from task folder
     Task tasks[256] = {0};
     get_task_list(tasks, tasksPath);
 
-    // TODO: implement the sorting and filtering algorithms
+    // filtering list
+    
+
+    // sorting list
     bool is_desc = order == DESC;
     if (orderType == PRIORITY) 
         qsort(tasks, 256, sizeof(tasks[0]), is_desc ? compare_priority_desc : compare_priority_asc);
     else if (orderType == DATE)
         qsort(tasks, 256, sizeof(tasks[0]), is_desc ? compare_date_desc : compare_date_asc);
     
+    // show processed list
     printf("order type: %s\n", orderType == PRIORITY ? "priority" : "date");
     printf("order: %s\n", is_desc ? "desc" : "asc");
     print_task_list(tasks, tasksPath);
