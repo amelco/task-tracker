@@ -3,20 +3,27 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #define AHB_LIB_IMPLEMENTATION
 #define AHB_STRIP_PREFIX
 #include "ahb_lib.h"
 
 typedef enum {
-    ASC,
-    DESC
+    ORDER_ASC,
+    ORDER_DESC
 } Order;
 
 typedef enum {
-    DATE,
-    PRIORITY
+    ORDERTYPE_DATE,
+    ORDERTYPE_PRIORITY
 } OrderType;
+
+typedef enum {
+    FILTER_NONE,
+    FILTER_STATUS_OPEN,
+    FILTER_STATUS_CLOSED
+} Filter;
 
 void usage() {
     printf("Usage: tatr [OPTIONS]\n");
@@ -49,9 +56,9 @@ void get_args(int argc, char** argv, OrderType *orderType, Order *order)
                 exit(1);
             }
             if (strcmp(arg, "date") == 0) {
-                *orderType = DATE;
+                *orderType = ORDERTYPE_DATE;
             } else if (strcmp(arg, "priority") == 0) {
-                *orderType = PRIORITY;
+                *orderType = ORDERTYPE_PRIORITY;
             } else {
                 printf("Invalid order type. Must be 'date' or 'priority'\n");
                 exit(1);
@@ -63,9 +70,9 @@ void get_args(int argc, char** argv, OrderType *orderType, Order *order)
                 exit(1);
             }
             if (strcmp(arg, "asc") == 0) {
-                *order = ASC;
+                *order = ORDER_ASC;
             } else if (strcmp(arg, "desc") == 0) {
-                *order = DESC;
+                *order = ORDER_DESC;
             } else {
                 printf("Invalid order. Must be 'asc' or 'desc'\n");
                 exit(1);
@@ -89,8 +96,9 @@ void get_args(int argc, char** argv, OrderType *orderType, Order *order)
 }
 
 typedef enum {
-    OPEN,
-    CLOSED
+    STATUS_OPEN,
+    STATUS_CLOSED,
+    __status_count
 } Status;
 
 typedef struct {
@@ -157,13 +165,12 @@ char *get_tasks_dir()
 // allocates memory in Task->title and Task->id
 Task get_task(const char *taskDir, const char *taskId)
 {
-
-    // TASK(20260415-172036): implement a string builder
-    char path[256] = {0};
-    strcat(path, taskDir);
-    strcat(path, "/");
-    strcat(path, taskId);
-    strcat(path, "/task.md");
+    StringBuilder sb = {0};
+    sb_append(&sb, taskDir);
+    sb_append(&sb, "/");
+    sb_append(&sb, taskId);
+    sb_append(&sb, "/task.md");
+    char *path = sb_to_cstring(&sb);
 
     Task t = {0};
     t.id = strdup(taskId);
@@ -202,10 +209,10 @@ Task get_task(const char *taskDir, const char *taskId)
                 strncpy(tmp, content + beg, len);
                 char* status = strchr(tmp, ':') + 2;
                 if (strcmp(status, "OPEN") == 0) {
-                    t.status = OPEN;
+                    t.status = STATUS_OPEN;
                 }
                 else if(strcmp(status, "CLOSED") == 0) {
-                    t.status = CLOSED;
+                    t.status = STATUS_CLOSED;
                 }
                 else {
                     printf("Invalid status '%s' on task '%s'\n", status, taskDir);
@@ -223,6 +230,7 @@ Task get_task(const char *taskDir, const char *taskId)
         }
     }
     free(content);
+    free(path);
     return t;
 }
 
@@ -242,17 +250,27 @@ void get_task_list(TaskList *tasks, const char *tasksPath)
     }
 }
 
+const char *status_to_cstring(Status st)
+{
+    static_assert(__status_count == 2, "missing some enum Status");
+    if      (st == STATUS_OPEN)   return "Open";
+    else if (st == STATUS_CLOSED) return "Closed";
+    else UNREACHABLE("status_to_cstring");
+}
+
 void print_task_list(TaskList tasks, char *taskDir) 
 {
     for (size_t i=0; i < tasks.count; i++) {
         Task t = tasks.data[i];
-        char path[256] = {0};
-        strcat(path, taskDir);
-        strcat(path, "/");
-        strcat(path, t.id);
-        strcat(path, "/task.md");
+        StringBuilder sb = {0};
+        sb_append(&sb, taskDir);
+        sb_append(&sb, "/");
+        sb_append(&sb, t.id);
+        sb_append(&sb, "/task.md");
+        char *path = sb_to_cstring(&sb);
 
-        printf("%s:3:11: title: %-40.40s  | priority: %3zu\n", path, t.title, t.priority);
+        printf("%s:3:11: title: %-40.40s  | status: %-6.6s | priority: %3zu\n", path, t.title, status_to_cstring(t.status), t.priority);
+        free(path);
     }
 }
 
@@ -278,7 +296,6 @@ long long date_to_lld(const char *date) {
     char date_[15] = {0};
     strncpy(date_, tmp, 8);
     strncpy(date_+8, tmp+9, 6);
-    printf("  %s\n", date_);
     return atoll(date_);
 }
 
@@ -287,7 +304,6 @@ long long date_to_lld(const char *date) {
     const Task *bb = b;                                      \
     if (!aa->id || !bb->id) return 0;                        \
                                                              \
-    printf("something"); \
     long long da = date_to_lld(aa->id);                      \
     long long db = date_to_lld(bb->id);                      \
                                                              \
@@ -306,9 +322,15 @@ int compare_date_desc(const void *a, const void *b)
 
 int main(int argc, char **argv)
 {
-    OrderType orderType = PRIORITY;
-    Order order = DESC;
+    OrderType orderType = ORDERTYPE_PRIORITY;
+    Order order = ORDER_DESC;
+    Filter filter = FILTER_NONE;
     get_args(argc, argv, &orderType, &order);
+
+    bool is_desc = order == ORDER_DESC;
+    printf("filter: %s\n", FILTER_STATUS_OPEN ? "OPEN" : "NONE");
+    printf("order type: %s\n", orderType == ORDERTYPE_PRIORITY ? "priority" : "date");
+    printf("order: %s\n", is_desc ? "desc" : "asc");
 
     char *tasksPath = get_tasks_dir();
     if (!tasksPath) {
@@ -317,21 +339,40 @@ int main(int argc, char **argv)
     }
 
     // getting all tasks from task folder
-    TaskList tasks = {0};
-    get_task_list(&tasks, tasksPath);
+    TaskList allTasks = {0};
+    get_task_list(&allTasks, tasksPath);
 
-    // TODO(Andre): filtering list
+    TaskList tasks = {0};
+    filter = FILTER_STATUS_CLOSED; // TODO(Andre): get filter from arguments
+    if (filter != FILTER_NONE) {
+        Status st = -1;
+
+        for (size_t i=0; i < allTasks.count; i++) {
+            Task t = allTasks.data[i];
+
+            static_assert(__status_count == 2, "missing some enum Status");
+            if      (filter == FILTER_STATUS_OPEN)   st = STATUS_OPEN;
+            else if (filter == FILTER_STATUS_CLOSED) st = STATUS_CLOSED;
+            else UNREACHABLE("match filter to status");
+            assert((int)st != -1 && "match filter to status");
+            
+            printf("%s\n", status_to_cstring(t.status));
+            if (t.status == st) {
+                da_append(&tasks, t);
+            }
+        }
+    } else {
+        tasks = allTasks;
+    }
+
 
     // sorting list
-    bool is_desc = order == DESC;
-    if (orderType == PRIORITY) 
+    if (orderType == ORDERTYPE_PRIORITY) 
         qsort(tasks.data, tasks.count, sizeof(tasks.data[0]), is_desc ? compare_priority_desc : compare_priority_asc);
-    else if (orderType == DATE)
+    else if (orderType == ORDERTYPE_DATE)
         qsort(tasks.data, tasks.count, sizeof(tasks.data[0]), is_desc ? compare_date_desc : compare_date_asc);
     
     // show processed list
-    printf("order type: %s\n", orderType == PRIORITY ? "priority" : "date");
-    printf("order: %s\n", is_desc ? "desc" : "asc");
     print_task_list(tasks, tasksPath);
 
     temp_alloc_free();

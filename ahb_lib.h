@@ -19,22 +19,38 @@ typedef struct {
 } TempAlloc;
 static TempAlloc allocator = {0};
 
-/* ---- Macros -------------------------------------------------------------- */
-#define AHB_TODO(msg)                              \
-  do {                                             \
-      printf("%s:%d: TODO (", __FILE__, __LINE__); \
-      printf(msg")\n");                            \
-      exit(1);                                     \
-  } while (0)
+typedef struct {
+    char **data;
+    size_t capacity;
+    size_t count;
+} StringBuilder;
 
-#define da_append(p, item)                                             \
-    do {                                                               \
-        if (!p->data || p->count >= p->capacity) {                     \
-            p->capacity = !p->data ? 1 : p->capacity * 2;              \
-            p->data = realloc(p->data, p->capacity * sizeof((item)));  \
-        }                                                              \
-        p->data[p->count++] = (item);                                  \
+/* ---- Macros -------------------------------------------------------------- */
+#define AHB_TODO(msg)                                \
+    do {                                             \
+        printf("%s:%d: TODO (", __FILE__, __LINE__); \
+        printf(msg")\n");                            \
+        exit(1);                                     \
+    } while (0)
+
+#define AHB_UNREACHABLE(msg)                                \
+    do {                                             \
+        printf("%s:%d: UNREACHABLE (", __FILE__, __LINE__); \
+        printf(msg")\n");                            \
+        exit(1);                                     \
+    } while (0)
+
+#define da_append(p, item)                                                  \
+    do {                                                                    \
+        if (!(p)->data || (p)->count >= (p)->capacity) {                    \
+            (p)->capacity = !(p)->data ? 1 : (p)->capacity * 2;             \
+            (p)->data = realloc((p)->data, (p)->capacity * sizeof((item))); \
+        }                                                                   \
+        (p)->data[(p)->count++] = (item);                                   \
     } while(0)
+ 
+#define da_free(p) \
+    free(p->data)
 /* -------------------------------------------------------------------------- */
 
 // command line arguments management
@@ -46,6 +62,9 @@ void ahb_temp_alloc_free();
 // file operations
 long ahb_get_file_size(FILE *f);
 char *ahb_read_entire_file(const char *path);
+
+// String operations
+void ahb_sb_append(StringBuilder *dest, const char *text); 
 
 // utility functions
 bool ahb_is_valid_date(const char *date);
@@ -61,7 +80,10 @@ bool ahb_is_valid_date(const char *date);
 #define read_entire_file   ahb_read_entire_file
 #define is_valid_date      ahb_is_valid_date
 #define get_file_size      ahb_get_file_size
+#define sb_append          ahb_sb_append
+#define sb_to_cstring      ahb_sb_to_cstring
 #define TODO               AHB_TODO
+#define UNREACHABLE        AHB_UNREACHABLE
 #endif // AHB_STRIP_PREFIX
 
 
@@ -145,6 +167,31 @@ bool ahb_is_valid_date(const char *date)
     (void)date;
     AHB_TODO("implement is valid date");
     return true;
+}
+
+// this funciont allocates memory if sb is empty
+void ahb_sb_append(StringBuilder *sb, const char *text)
+{
+    da_append(sb, (char *)text);
+}
+
+// this function allocates memory and frees the string builder
+char *ahb_sb_to_cstring(StringBuilder *sb)
+{
+    size_t allocSize = 0;
+    for (size_t i = 0; i < sb->count; i++) {
+        allocSize += strlen(sb->data[i]);
+    }
+    char *result = malloc(allocSize);
+    
+    size_t pos = 0;
+    for (size_t i=0; i < sb->count; i++) {
+        char *data = sb->data[i];
+        strcpy(result + pos, data);
+        pos += strlen(data);
+    }
+    da_free(sb);
+    return result;
 }
 
 #endif // AHB_LIB_IMPLEMENTATION
