@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <string.h>
 
 typedef struct {
     int curr_argn;
@@ -17,13 +19,32 @@ typedef struct {
 } TempAlloc;
 static TempAlloc allocator = {0};
 
+#define AHB_TODO(msg)                            \
+  printf("%s:%d: TODO (", __FILE__, __LINE__); \
+  printf(msg")\n");                                   \
+  exit(1)
+
+#define da_append(p, item) \
+    do {\
+    if (!p->data || p->count >= p->capacity) { \
+        p->capacity = !p->data ? 1 : p->capacity * 2; \
+        p->data = realloc(p->data, p->capacity * sizeof((item))); \
+    } \
+    p->data[p->count++] = (item); \
+    } while(0);
+
 // cli arguments management
 void ahb_args_init(State *st, int argc, char **argv);
 char *ahb_args_next(State *st);
 char *ahb_temp_alloc(const char *content);
 void ahb_temp_alloc_free();
+long ahb_get_file_size(FILE *f);
 
+// file operations
 char *ahb_read_entire_file(const char *path);
+
+// miscelaneous
+bool ahb_is_valid_date(const char *date);
 
 #endif  //AHB_LIB
 
@@ -35,6 +56,9 @@ char *ahb_read_entire_file(const char *path);
 #define temp_alloc ahb_temp_alloc
 #define temp_alloc_free ahb_temp_alloc_free
 #define read_entire_file ahb_read_entire_file
+#define is_valid_date ahb_is_valid_date
+#define get_file_size ahb_get_file_size
+#define TODO AHB_TODO
 
 #endif // AHB_STRIP_PREFIX
 
@@ -82,13 +106,6 @@ char *ahb_temp_alloc(const char *content)
     allocator.count += size + 1;
     return ptr;
 }
-// count: 0
-// hello. size: 5
-// hello.------------------
-
-// count: 5
-// world!. size 6
-// hello.world!------------------
 
 void ahb_temp_alloc_free()
 {
@@ -98,14 +115,20 @@ void ahb_temp_alloc_free()
     allocator.data = NULL;
 }
 
-// this allocates memory
-char *ahb_read_entire_file(const char *path)
+long ahb_get_file_size(FILE *f)
 {
-    FILE *f = fopen(path, "r");
     assert(f && "Could not open file");
     fseek(f, 0L, SEEK_END);
     size_t size = ftell(f);
     rewind(f);
+    return size;
+}
+
+// this allocates memory
+char *ahb_read_entire_file(const char *path)
+{
+    FILE *f = fopen(path, "r");
+    size_t size = ahb_get_file_size(f);
     char *content = malloc(size + 1);
     assert(content && "Could not allocate memory. Buy more RAM.");
     int count = fread(content, 1, size, f);
@@ -113,6 +136,14 @@ char *ahb_read_entire_file(const char *path)
     assert((size_t)count == size && "Could not read entire file");
     fclose(f);
     return content;
+}
+
+bool ahb_is_valid_date(const char *date)
+{
+    // accepts only DD-MM-YYYY
+    (void)date;
+    AHB_TODO("implement is valid date");
+    return true;
 }
 
 #endif // AHB_LIB_IMPLEMENTATION

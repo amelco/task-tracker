@@ -1,4 +1,4 @@
 # add tasks to a dynamic array
 
-# STATUS: OPEN
+# STATUS: CLOSED
 # PRIORITY: 70
