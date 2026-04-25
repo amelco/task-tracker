@@ -59,11 +59,14 @@ void usage() {
     printf("  --status   <STATUS>                    : filter by a certain status\n");
     printf("  --order  <date, priority> [asc, desc]  : order by date or priority, ascending or descending\n");
     printf("STATUS:\n");
-    printf("  OPEN    : opened tasks\n");
-    printf("  CLOSED  : closed tasks\n");
+    static_assert(__status_count == 2, "missing enum Status");
+    printf("  open    : opened tasks\n");
+    printf("  closed  : closed tasks\n");
     printf("\n");
     printf("Example:\n");
-    printf("tatr --after 23-02-2026 --before 23-03-2026 --order date asc --priority OPEN\n");
+    printf("  tatr --after 23-02-2026 --before 23-03-2026 --order date asc --status OPEN\n");
+    printf("NOTE: Order will be executed last. Filters are executed in the order they are\n");
+    printf("      passed in the arguments.\n");
 }
 
 void get_args(int argc, char** argv, CmdArgs *args)
@@ -358,9 +361,6 @@ int main(int argc, char **argv)
     get_args(argc, argv, &args);
 
     bool is_desc = args.order == ORDER_DESC;
-    //printf("filter: %s\n", FILTER_STATUS_OPEN ? "OPEN" : "NONE");
-    //printf("order type: %s\n", args.orderType == ORDERTYPE_PRIORITY ? "priority" : "date");
-    //printf("order: %s\n", is_desc ? "desc" : "asc");
     printf("Filtered by %s. %s order by %s\n", filter_to_cstring(args.filter), is_desc ? "Descending" : "Ascending", args.orderType == ORDERTYPE_PRIORITY ? "priority" : "date");
 
     char *tasksPath = get_tasks_dir();
