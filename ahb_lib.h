@@ -19,52 +19,53 @@ typedef struct {
 } TempAlloc;
 static TempAlloc allocator = {0};
 
-#define AHB_TODO(msg)                            \
-  printf("%s:%d: TODO (", __FILE__, __LINE__); \
-  printf(msg")\n");                                   \
-  exit(1)
+/* ---- Macros -------------------------------------------------------------- */
+#define AHB_TODO(msg)                              \
+  do {                                             \
+      printf("%s:%d: TODO (", __FILE__, __LINE__); \
+      printf(msg")\n");                            \
+      exit(1);                                     \
+  } while (0)
 
-#define da_append(p, item) \
-    do {\
-    if (!p->data || p->count >= p->capacity) { \
-        p->capacity = !p->data ? 1 : p->capacity * 2; \
-        p->data = realloc(p->data, p->capacity * sizeof((item))); \
-    } \
-    p->data[p->count++] = (item); \
-    } while(0);
+#define da_append(p, item)                                             \
+    do {                                                               \
+        if (!p->data || p->count >= p->capacity) {                     \
+            p->capacity = !p->data ? 1 : p->capacity * 2;              \
+            p->data = realloc(p->data, p->capacity * sizeof((item)));  \
+        }                                                              \
+        p->data[p->count++] = (item);                                  \
+    } while(0)
+/* -------------------------------------------------------------------------- */
 
-// cli arguments management
+// command line arguments management
 void ahb_args_init(State *st, int argc, char **argv);
 char *ahb_args_next(State *st);
 char *ahb_temp_alloc(const char *content);
 void ahb_temp_alloc_free();
-long ahb_get_file_size(FILE *f);
 
 // file operations
+long ahb_get_file_size(FILE *f);
 char *ahb_read_entire_file(const char *path);
 
-// miscelaneous
+// utility functions
 bool ahb_is_valid_date(const char *date);
 
 #endif  //AHB_LIB
 
 // strip ahb prefix when non conflict names is assured
 #ifdef AHB_STRIP_PREFIX
-
-#define args_init ahb_args_init
-#define args_next ahb_args_next
-#define temp_alloc ahb_temp_alloc
-#define temp_alloc_free ahb_temp_alloc_free
-#define read_entire_file ahb_read_entire_file
-#define is_valid_date ahb_is_valid_date
-#define get_file_size ahb_get_file_size
-#define TODO AHB_TODO
-
+#define args_init          ahb_args_init
+#define args_next          ahb_args_next
+#define temp_alloc         ahb_temp_alloc
+#define temp_alloc_free    ahb_temp_alloc_free
+#define read_entire_file   ahb_read_entire_file
+#define is_valid_date      ahb_is_valid_date
+#define get_file_size      ahb_get_file_size
+#define TODO               AHB_TODO
 #endif // AHB_STRIP_PREFIX
 
 
 #ifdef AHB_LIB_IMPLEMENTATION
-
 void ahb_args_init(State *st, int argc, char **argv)
 {
     st->curr_argn = 0;

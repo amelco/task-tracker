@@ -100,6 +100,12 @@ typedef struct {
     size_t priority;
 } Task;
 
+typedef struct {
+    Task *data;
+    size_t count;
+    size_t capacity;
+} TaskList;
+
 char *get_tasks_dir()
 {
     DIR *d = NULL;
@@ -219,12 +225,6 @@ Task get_task(const char *taskDir, const char *taskId)
     free(content);
     return t;
 }
-
-typedef struct {
-    Task *data;
-    size_t count;
-    size_t capacity;
-} TaskList;
 
 void get_task_list(TaskList *tasks, const char *tasksPath)
 {
