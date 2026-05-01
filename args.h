@@ -12,17 +12,30 @@ typedef enum {
 } OrderType;
 
 typedef enum {
-    FILTER_NONE,
+    FILTER_STATUS_NONE,
     FILTER_STATUS_OPEN,
     FILTER_STATUS_CLOSED,
-    FILTER_AFTER,
-    __filter_count
-} Filter;
+    __filter_status_count
+} FilterStatus;
+
+typedef enum {
+    FILTER_DATE_NONE,
+    FILTER_DATE_AFTER,
+    FILTER_DATE_BEFORE,
+    __filter_date_count
+} FilterDate;
+
+typedef struct {
+    long long date_after;
+    long long date_before;
+} FilterDateData;
 
 typedef struct {
     Order order;
     OrderType orderType;
-    Filter filter;
+    FilterStatus filterStatus;
+    int filterDate;  // FilterDate enum bitwise
+    FilterDateData filterDateData;
 } CmdArgs;
 
 void usage() {
@@ -82,9 +95,9 @@ void get_args(int argc, char** argv, CmdArgs *args)
                 ABORT("Must inform a status 'open' or 'closed'");
             }
             if (strcmp(arg, "open") == 0) {
-                args->filter |= FILTER_STATUS_OPEN;
+                args->filterStatus = FILTER_STATUS_OPEN;
             } else if (strcmp(arg, "closed") == 0) {
-                args->filter |= FILTER_STATUS_CLOSED;
+                args->filterStatus = FILTER_STATUS_CLOSED;
             } else {
                 ABORT("Invalid status. Must be 'open' or 'closed'");
             }
@@ -95,12 +108,23 @@ void get_args(int argc, char** argv, CmdArgs *args)
             }
             long long date;
             if (is_valid_date(arg, &date)) {
-                args->filter |= FILTER_AFTER;
+                args->filterDate |= FILTER_DATE_AFTER;
+                args->filterDateData.date_after = date;
             } else {
-                printf("ERROR: Invalid date '%s'\n", arg);
-                exit(1);
+                ABORT("ERROR: Invalid date");
             }
-
+        } else if (strcmp(arg, "--before") == 0) {
+            arg = temp_alloc(args_next(&st));
+            if (arg == NULL) {
+                ABORT("Must inform a date in the format DD-MM-YYYY");
+            }
+            long long date;
+            if (is_valid_date(arg, &date)) {
+                args->filterDate |= FILTER_DATE_BEFORE;
+                args->filterDateData.date_before = date;
+            } else {
+                ABORT("ERROR: Invalid date");
+            }
         } else {
             printf("ERROR: Invalid argument '%s'\n", arg);
             usage();

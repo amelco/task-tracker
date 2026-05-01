@@ -102,7 +102,7 @@ long long date_to_lld(const char *date);
 #define get_file_size       ahb_get_file_size
 #define sb_append           ahb_sb_append
 #define sb_to_cstring       ahb_sb_to_cstring
-#define split_cstring       ahb_split_cstring
+#define split               ahb_split
 #define TODO                AHB_TODO
 #define UNREACHABLE         AHB_UNREACHABLE
 #endif // AHB_STRIP_PREFIX

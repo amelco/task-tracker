@@ -12,16 +12,6 @@
 #include "task.h"
 #include "args.h"
 
-const char *filter_to_cstring(Filter ft)
-{
-    static_assert(__filter_count == 4, "missing some enum Filter");
-    if      (ft == FILTER_NONE)          return "none";
-    else if (ft == FILTER_STATUS_CLOSED) return "closed";
-    else if (ft == FILTER_STATUS_OPEN)   return "open";
-    else if (ft == FILTER_AFTER)         return "after";
-    else UNREACHABLE("filter_to_cstring");
-}
-
 #define compare_priority_body(num)               \
     const Task *aa = a;                          \
     const Task *bb = b;                          \
@@ -64,46 +54,77 @@ int main(int argc, char **argv)
     CmdArgs args = {0}; // default: order by priority desc with no filter
     get_args(argc, argv, &args);
 
+    bool statusFilter = args.filterStatus != FILTER_STATUS_NONE;
+    bool dateFilter = args.filterDate != FILTER_DATE_NONE;
     bool is_desc = args.order == ORDER_DESC;
-    printf("Filtered by %s. %s order by %s\n", filter_to_cstring(args.filter), is_desc ? "Descending" : "Ascending", args.orderType == ORDERTYPE_PRIORITY ? "priority" : "date");
 
+    // getting all tasks from task folder
     char *tasksPath = get_tasks_dir();
     if (!tasksPath) {
         printf("Task directory was not found. Please create one\n");
         exit(1);
     }
-
-    // getting all tasks from task folder
     TaskList allTasks = {0};
     get_task_list(&allTasks, tasksPath);
 
     TaskList tasks = {0};
-    if (args.filter != FILTER_NONE) {
+
+    if (statusFilter || dateFilter) {
         Status status = -1;
 
         for (size_t i=0; i < allTasks.count; i++) {
             Task t = allTasks.data[i];
 
-            // Filtering by status first
+            // Filtering by status
+            // It's ok to have no status filter.
             static_assert(__status_count == 2, "missing some enum Status");
-            if      (args.filter == FILTER_STATUS_OPEN)   status = STATUS_OPEN;
-            else if (args.filter == FILTER_STATUS_CLOSED) status = STATUS_CLOSED;
-            else UNREACHABLE("match filter to status");
-            assert((int)status != -1 && "match filter to status");
+            if      (args.filterStatus == FILTER_STATUS_OPEN)   status = STATUS_OPEN;
+            else if (args.filterStatus == FILTER_STATUS_CLOSED) status = STATUS_CLOSED;
             
-            if (t.status == status) {
+            if (!dateFilter && t.status == status) {
                 da_append(&tasks, t);
             }
 
             // Filtering by date 
-            if (args.filter == FILTER_AFTER) {
-                // TODO: only add tasks where id is greater than the date
-                // if (t.id > after_date) da_append(&tasks, t);
-                // - need to get the after_date from the args
-                // - need to convert id to long long (YYYYMMDD)
+            if (dateFilter) {
+                if (args.filterDate == 1) {
+                    CStr_List l = {0};
+                    split(t.id, '-', &l);
+                    long long date_task = date_to_lld(l.data[0]);
+                    free(l.data);
+                    long long date_after = args.filterDateData.date_after;
+                    if (date_task > date_after) {
+                        if (t.status == status || !statusFilter) {
+                            da_append(&tasks, t);
+                        }
+                    }
+                }
+                else if (args.filterDate == 2) {
+                    CStr_List l = {0};
+                    split(t.id, '-', &l);
+                    long long date_task = date_to_lld(l.data[0]);
+                    free(l.data);
+                    long long date_before = args.filterDateData.date_before;
+                    if (date_task < date_before) {
+                        if (t.status == status || !statusFilter) {
+                            da_append(&tasks, t);
+                        }
+                    }
+                }
+                else if (args.filterDate == 3) {
+                    CStr_List l = {0};
+                    split(t.id, '-', &l);
+                    long long date_task = date_to_lld(l.data[0]);
+                    free(l.data);
+                    long long date_before = args.filterDateData.date_before;
+                    long long date_after = args.filterDateData.date_after;
+                    if (date_task < date_before && date_task > date_after) {
+                        if (t.status == status || !statusFilter) {
+                            da_append(&tasks, t);
+                        }
+                    }
+                }
             }
-            //if (args.filter == FILTER_BEFORE) {
-            //}
         }
     } else {
         // no filter was selected
