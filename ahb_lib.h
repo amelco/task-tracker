@@ -20,10 +20,22 @@ typedef struct {
 static TempAlloc allocator = {0};
 
 typedef struct {
-    char **data;
+    char *data;
     size_t capacity;
     size_t count;
 } StringBuilder;
+
+typedef struct {
+    char **data;
+    size_t capacity;
+    size_t count;
+} CStr_List;
+
+typedef struct {
+    int day;
+    int month;
+    int year;
+} Date;
 
 /* ---- Macros -------------------------------------------------------------- */
 #define AHB_TODO(msg)                                \
@@ -33,11 +45,17 @@ typedef struct {
         exit(1);                                     \
     } while (0)
 
+#define ABORT(msg) \
+    do { \
+        printf("ERROR: %s\n", msg); \
+        exit(1); \
+    } while(0)
+
 #define AHB_UNREACHABLE(msg)                                \
-    do {                                             \
+    do {                                                    \
         printf("%s:%d: UNREACHABLE (", __FILE__, __LINE__); \
-        printf(msg")\n");                            \
-        exit(1);                                     \
+        printf(msg")\n");                                   \
+        exit(1);                                            \
     } while (0)
 
 #define da_append(p, item)                                                  \
@@ -65,25 +83,27 @@ char *ahb_read_entire_file(const char *path);
 
 // String operations
 void ahb_sb_append(StringBuilder *dest, const char *text); 
+void ahb_split_cstring(const char *cstr, char sep, CStr_List *l);
 
 // utility functions
-bool ahb_is_valid_date(const char *date);
+bool ahb_is_valid_date(const char *date, Date* date_out);
 
 #endif  //AHB_LIB
 
 // strip ahb prefix when non conflict names is assured
 #ifdef AHB_STRIP_PREFIX
-#define args_init          ahb_args_init
-#define args_next          ahb_args_next
-#define temp_alloc         ahb_temp_alloc
-#define temp_alloc_free    ahb_temp_alloc_free
-#define read_entire_file   ahb_read_entire_file
-#define is_valid_date      ahb_is_valid_date
-#define get_file_size      ahb_get_file_size
-#define sb_append          ahb_sb_append
-#define sb_to_cstring      ahb_sb_to_cstring
-#define TODO               AHB_TODO
-#define UNREACHABLE        AHB_UNREACHABLE
+#define args_init           ahb_args_init
+#define args_next           ahb_args_next
+#define temp_alloc          ahb_temp_alloc
+#define temp_alloc_free     ahb_temp_alloc_free
+#define read_entire_file    ahb_read_entire_file
+#define is_valid_date       ahb_is_valid_date
+#define get_file_size       ahb_get_file_size
+#define sb_append           ahb_sb_append
+#define sb_to_cstring       ahb_sb_to_cstring
+#define split_cstring       ahb_split_cstring
+#define TODO                AHB_TODO
+#define UNREACHABLE         AHB_UNREACHABLE
 #endif // AHB_STRIP_PREFIX
 
 
@@ -161,37 +181,58 @@ char *ahb_read_entire_file(const char *path)
     return content;
 }
 
-bool ahb_is_valid_date(const char *date)
+// pass date = NULL if only want to validate
+bool ahb_is_valid_date(const char *date, Date* date_out)
 {
     // accepts only DD-MM-YYYY
-    (void)date;
-    AHB_TODO("implement is valid date");
+    CStr_List l = {0};
+    ahb_split_cstring(date, '-', &l);
+    if (l.count < 3) return false;
+
+    char *day   = l.data[0];
+    char *month = l.data[1];
+    char *year  = l.data[2];
+    if (strlen(day) > 2 || strlen(month) > 2 || strlen(year) > 4) return false;
+
+    int dday   = atoi(day);
+    int dmonth = atoi(month);
+    int dyear  = atoi(year);
+    if (dday <= 0 || dmonth <= 0 || dyear <= 0) return false;
+    if (dday > 31 || dmonth > 12 || dyear < 1970) return false;
+
+    if (date_out) {
+        date_out->day   = dday;
+        date_out->month = dmonth;
+        date_out->year  = dyear;
+    }
     return true;
 }
 
 // this funciont allocates memory if sb is empty
 void ahb_sb_append(StringBuilder *sb, const char *text)
 {
-    da_append(sb, (char *)text);
+    while (!sb->data || sb->count > sb->capacity) {
+        sb->capacity = !sb->data ? 512 : sb->capacity * 2;
+        sb->data = realloc(sb->data, sb->capacity);
+    }
+    memcpy(sb->data + sb->count, text, strlen(text));
+    sb->count += strlen(text);
+    sb->data[sb->count] = '\0';
 }
 
-// this function allocates memory and frees the string builder
-char *ahb_sb_to_cstring(StringBuilder *sb)
+// this function allocates memory
+void ahb_split_cstring(const char *cstr, char sep, CStr_List *l)
 {
-    size_t allocSize = 0;
-    for (size_t i = 0; i < sb->count; i++) {
-        allocSize += strlen(sb->data[i]);
+    size_t ini = 0;
+    unsigned long i;
+    for (i=0; i < strlen(cstr); i++) {
+        if (cstr[i] == sep) {
+            da_append(l, strndup(cstr+ini, i-ini));
+            i++;
+            ini = i;
+        }
     }
-    char *result = malloc(allocSize);
-    
-    size_t pos = 0;
-    for (size_t i=0; i < sb->count; i++) {
-        char *data = sb->data[i];
-        strcpy(result + pos, data);
-        pos += strlen(data);
-    }
-    da_free(sb);
-    return result;
+    da_append(l, strndup(cstr+ini, i-ini));
 }
 
 #endif // AHB_LIB_IMPLEMENTATION

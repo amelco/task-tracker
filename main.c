@@ -81,58 +81,55 @@ void get_args(int argc, char** argv, CmdArgs *args)
         if (strcmp(arg, "--order") == 0) {
             arg = temp_alloc(args_next(&st));
             if (arg == NULL) {
-                printf("Must inform what to order: 'date' or 'priority'\n");
-                exit(1);
+                ABORT("Must inform what to order: 'date' or 'priority'");
             }
             if (strcmp(arg, "date") == 0) {
                 args->orderType = ORDERTYPE_DATE;
             } else if (strcmp(arg, "priority") == 0) {
                 args->orderType = ORDERTYPE_PRIORITY;
             } else {
-                printf("Invalid order type. Must be 'date' or 'priority'\n");
-                exit(1);
+                ABORT("Invalid order type. Must be 'date' or 'priority'");
             }
 
             arg = temp_alloc(args_next(&st));
             if (arg == NULL) {
-                printf("Must inform order: 'asc' or 'desc'\n");
-                exit(1);
+                ABORT("Must inform order: 'asc' or 'desc'");
             }
             if (strcmp(arg, "asc") == 0) {
                 args->order = ORDER_ASC;
             } else if (strcmp(arg, "desc") == 0) {
                 args->order = ORDER_DESC;
             } else {
-                printf("Invalid order. Must be 'asc' or 'desc'\n");
-                exit(1);
+                ABORT("Invalid order. Must be 'asc' or 'desc'");
             }
         } else if (strcmp(arg, "--status") == 0) {
+            static_assert(__status_count == 2, "missing enum Status");
             arg = temp_alloc(args_next(&st));
             if (arg == NULL) {
-                static_assert(__status_count == 2, "missing enum Status");
-                printf("Must inform a status 'open' or 'closed'\n");
-                exit(1);
+                ABORT("Must inform a status 'open' or 'closed'");
             }
             if (strcmp(arg, "open") == 0) {
                 args->filter = FILTER_STATUS_OPEN;
             } else if (strcmp(arg, "closed") == 0) {
                 args->filter = FILTER_STATUS_CLOSED;
             } else {
-                printf("Invalid status. Must be 'open' or 'closed'\n");
-                exit(1);
+                ABORT("Invalid status. Must be 'open' or 'closed'");
             }
         } else if (strcmp(arg, "--after") == 0) {
             arg = temp_alloc(args_next(&st));
             if (arg == NULL) {
-                printf("Must inform a date in the format DD-MM-YYYY\n");
-                exit(1);
+                ABORT("Must inform a date in the format DD-MM-YYYY");
             }
-            if (is_valid_date(arg)) {
+            Date date = {0};
+            if (is_valid_date(arg, &date)) {
                 TODO("filter by date with 'after'");
+            } else {
+                printf("ERROR: Invalid date '%s'\n", arg);
+                exit(1);
             }
 
         } else {
-            printf("Invalid argument '%s'\n", arg);
+            printf("ERROR: Invalid argument '%s'\n", arg);
             usage();
             exit(1);
         }
@@ -196,7 +193,7 @@ Task get_task(const char *taskDir, const char *taskId)
     sb_append(&sb, "/");
     sb_append(&sb, taskId);
     sb_append(&sb, "/task.md");
-    char *path = sb_to_cstring(&sb);
+    char *path = sb.data;
 
     Task t = {0};
     t.id = strdup(taskId);
@@ -302,7 +299,7 @@ void print_task_list(TaskList tasks, char *taskDir)
         sb_append(&sb, "/");
         sb_append(&sb, t.id);
         sb_append(&sb, "/task.md");
-        char *path = sb_to_cstring(&sb);
+        char *path = sb.data;
 
         printf("%s:3:11: title: %-40.40s  | status: %-6.6s | priority: %3zu\n", path, t.title, status_to_cstring(t.status), t.priority);
         free(path);
