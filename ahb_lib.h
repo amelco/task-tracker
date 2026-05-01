@@ -83,10 +83,11 @@ char *ahb_read_entire_file(const char *path);
 
 // String operations
 void ahb_sb_append(StringBuilder *dest, const char *text); 
-void ahb_split_cstring(const char *cstr, char sep, CStr_List *l);
+void ahb_split(const char *cstr, char sep, CStr_List *l);
 
 // utility functions
-bool ahb_is_valid_date(const char *date, Date* date_out);
+bool ahb_is_valid_date(const char *date, long long *date_lld);
+long long date_to_lld(const char *date);
 
 #endif  //AHB_LIB
 
@@ -182,11 +183,11 @@ char *ahb_read_entire_file(const char *path)
 }
 
 // pass date = NULL if only want to validate
-bool ahb_is_valid_date(const char *date, Date* date_out)
+bool ahb_is_valid_date(const char *date, long long *date_lld)
 {
     // accepts only DD-MM-YYYY
     CStr_List l = {0};
-    ahb_split_cstring(date, '-', &l);
+    ahb_split(date, '-', &l);
     if (l.count < 3) return false;
 
     char *day   = l.data[0];
@@ -200,13 +201,32 @@ bool ahb_is_valid_date(const char *date, Date* date_out)
     if (dday <= 0 || dmonth <= 0 || dyear <= 0) return false;
     if (dday > 31 || dmonth > 12 || dyear < 1970) return false;
 
-    if (date_out) {
-        date_out->day   = dday;
-        date_out->month = dmonth;
-        date_out->year  = dyear;
+    if (date_lld) {
+        char yyyymmdd[9] = {0};
+        sprintf(yyyymmdd, "%4d%02d%02d", dyear, dmonth, dday);
+        *date_lld = date_to_lld(yyyymmdd);
     }
     return true;
 }
+
+/**
+ * @brief Truncate the date into long long
+ * 
+ * Accepts the date ONLY in the format YYYYMMDD
+ * 
+ * @param The date in the format YYYYMMDD
+ * @return The date in long long
+ */
+long long date_to_lld(const char *date) {
+    char *tmp = temp_alloc(date);
+    tmp[8] = '\0';
+
+    char date_[15] = {0};
+    strncpy(date_, tmp, 8);
+    strncpy(date_+8, tmp+9, 6);
+    return atoll(date_);
+}
+
 
 // this funciont allocates memory if sb is empty
 void ahb_sb_append(StringBuilder *sb, const char *text)
@@ -221,7 +241,7 @@ void ahb_sb_append(StringBuilder *sb, const char *text)
 }
 
 // this function allocates memory
-void ahb_split_cstring(const char *cstr, char sep, CStr_List *l)
+void ahb_split(const char *cstr, char sep, CStr_List *l)
 {
     size_t ini = 0;
     unsigned long i;
