@@ -87,11 +87,12 @@ int main(int argc, char **argv)
 
             // Filtering by date 
             if (dateFilter) {
+                CStr_List l = {0};
+                split(t.id, '-', &l);
+                long long date_task = date_to_lld(l.data[0]);
+                free(l.data);
+
                 if (args.filterDate == 1) {
-                    CStr_List l = {0};
-                    split(t.id, '-', &l);
-                    long long date_task = date_to_lld(l.data[0]);
-                    free(l.data);
                     long long date_after = args.filterDateData.date_after;
                     if (date_task > date_after) {
                         if (t.status == status || !statusFilter) {
@@ -100,10 +101,6 @@ int main(int argc, char **argv)
                     }
                 }
                 else if (args.filterDate == 2) {
-                    CStr_List l = {0};
-                    split(t.id, '-', &l);
-                    long long date_task = date_to_lld(l.data[0]);
-                    free(l.data);
                     long long date_before = args.filterDateData.date_before;
                     if (date_task < date_before) {
                         if (t.status == status || !statusFilter) {
@@ -112,10 +109,6 @@ int main(int argc, char **argv)
                     }
                 }
                 else if (args.filterDate == 3) {
-                    CStr_List l = {0};
-                    split(t.id, '-', &l);
-                    long long date_task = date_to_lld(l.data[0]);
-                    free(l.data);
                     long long date_before = args.filterDateData.date_before;
                     long long date_after = args.filterDateData.date_after;
                     if (date_task < date_before && date_task > date_after) {
